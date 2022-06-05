@@ -1,5 +1,3 @@
-import { useEffect } from "react";
-
 const User = ({ user, onRemove, onToggle }) => {
   const { username, email, id, active } = user;
   // useEffect(() => {
