@@ -89,15 +89,17 @@ function App() {
   });
   const { username, email } = form;
   const onCreate = useCallback(() => {
-    dispatch({
-      type: "CREATE_USER",
-      user: {
-        id: nextId.current,
-        username,
-        email,
-      },
-    });
-    nextId.current++;
+    if (username && email) {
+      dispatch({
+        type: "CREATE_USER",
+        user: {
+          id: nextId.current,
+          username,
+          email,
+        },
+      });
+      nextId.current++;
+    }
     reset();
   }, [username, email, reset]); // reset은 eslint 규칙으로 넣었다고 하는데 상관 없다고.
 
@@ -110,7 +112,7 @@ function App() {
       },
       []
     );
-  });
+  }, []);
 
   const onRemove = useCallback((id) => {
     dispatch({ type: "REMOVE_USER", id });
@@ -120,7 +122,12 @@ function App() {
 
   return (
     <>
-      <CreateUser onChange={onChange} onCreate={onCreate} />
+      <CreateUser
+        onChange={onChange}
+        onCreate={onCreate}
+        username={username}
+        email={email}
+      />
       <UserList
         users={users}
         username={username}
