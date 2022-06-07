@@ -1,6 +1,6 @@
 import { UserList } from "./UserList";
 import { CreateUser } from "./CreateUser";
-import { useReducer, useRef, useMemo, useCallback, createContext } from "react";
+import { useReducer, useRef, useMemo, useCallback } from "react";
 import { useInputs } from "./useInputs";
 
 const countActiveUsers = (users) => {
@@ -57,6 +57,7 @@ const reducer = (state, action) => {
           user.id === action.id ? { ...user, active: !user.active } : user
         ),
       };
+
     case "REMOVE_USER":
       return {
         ...state,
@@ -66,7 +67,7 @@ const reducer = (state, action) => {
       throw new Error("Unhandled Action");
   }
 };
-export const UserDispatch = createContext(null);
+
 function App() {
   const [state, dispatch] = useReducer(reducer, initialState);
   const nextId = useRef(4);
@@ -102,19 +103,40 @@ function App() {
     reset();
   }, [username, email, reset]); // reset은 eslint 규칙으로 넣었다고 하는데 상관 없다고.
 
+  // dependancy가 비어 있음 -> 최초에 함수 만들로 이후로 계속 재사용
+  const onToggle = useCallback((id) => {
+    dispatch(
+      {
+        type: "TOGGLE_USER",
+        id,
+      },
+      []
+    );
+  }, []);
+
+  const onRemove = useCallback((id) => {
+    dispatch({ type: "REMOVE_USER", id });
+  }, []);
+
   const count = useMemo(() => countActiveUsers(users), [users]);
 
   return (
-    <UserDispatch.Provider value={dispatch}>
+    <>
       <CreateUser
         onChange={onChange}
         onCreate={onCreate}
         username={username}
         email={email}
       />
-      <UserList users={users} />
+      <UserList
+        users={users}
+        username={username}
+        email={email}
+        onToggle={onToggle}
+        onRemove={onRemove}
+      />
       <div>활성 사용자 수: {count}</div>
-    </UserDispatch.Provider>
+    </>
   );
 }
 
