@@ -1,26 +1,19 @@
 import { UserList } from "./UserList";
 import { CreateUser } from "./CreateUser";
-import { useState, useRef, useMemo } from "react";
+import { useReducer, useRef, useMemo, useCallback } from "react";
+import { useInputs } from "./useInputs";
 
-function countActiveUsers(users) {
+const countActiveUsers = (users) => {
   console.log("활성 사용자 수 세는 중");
   return users.filter((user) => user.active).length;
-}
+};
 
-function App() {
-  const [inputs, setInputs] = useState({
-    username: "",
-    email: "",
-  });
-  const { username, email } = inputs;
-  const onChange = (e) => {
-    const { name, value } = e.target;
-    setInputs({
-      ...inputs,
-      [name]: value,
-    });
-  };
-  const [users, setUsers] = useState([
+const initialState = {
+  // inputs: {
+  //   username: "",
+  //   email: "",
+  // },
+  users: [
     {
       id: 1,
       username: "kim",
@@ -39,43 +32,102 @@ function App() {
       email: "park@mail.com",
       active: false,
     },
-  ]);
+  ],
+};
 
+const reducer = (state, action) => {
+  switch (action.type) {
+    // case "CHANGE_INPUT":
+    //   return {
+    //     ...state,
+    //     inputs: {
+    //       ...state.inputs,
+    //       [action.name]: action.value,
+    //     },
+    //   };
+    case "CREATE_USER":
+      return {
+        inputs: initialState.inputs,
+        users: state.users.concat(action.user),
+      };
+    case "TOGGLE_USER":
+      return {
+        ...state,
+        users: state.users.map((user) =>
+          user.id === action.id ? { ...user, active: !user.active } : user
+        ),
+      };
+
+    case "REMOVE_USER":
+      return {
+        ...state,
+        users: state.users.filter((user) => user.id !== action.id),
+      };
+    default:
+      throw new Error("Unhandled Action");
+  }
+};
+
+function App() {
+  const [state, dispatch] = useReducer(reducer, initialState);
   const nextId = useRef(4);
+  const { users } = state;
+  // const { username, email } = state.inputs;
 
-  const onCreate = () => {
-    setUsers([
-      ...users,
-      { id: nextId.current, username, email, active: false },
-    ]);
-    setInputs({
-      username: "",
-      email: "",
+  // const onChange = useCallback((e) => {
+  //   const { name, value } = e.target;
+  //   dispatch({
+  //     type: "CHANGE_INPUT",
+  //     name,
+  //     value,
+  //   });
+  // }, []);
+
+  const [form, onChange, reset] = useInputs({
+    username: "",
+    email: "",
+  });
+  const { username, email } = form;
+  const onCreate = useCallback(() => {
+    dispatch({
+      type: "CREATE_USER",
+      user: {
+        id: nextId.current,
+        username,
+        email,
+      },
     });
-    nextId.current += 1;
-  };
+    nextId.current++;
+    reset();
+  }, [username, email, reset]); // reset은 eslint 규칙으로 넣었다고 하는데 상관 없다고.
 
-  const onRemove = (id) => {
-    setUsers(users.filter((user) => user.id !== id));
-  };
-
-  const onToggle = (id) => {
-    setUsers(
-      users.map((user) =>
-        user.id === id ? { ...user, active: !user.active } : user
-      )
+  // dependancy가 비어 있음 -> 최초에 함수 만들로 이후로 계속 재사용
+  const onToggle = useCallback((id) => {
+    dispatch(
+      {
+        type: "TOGGLE_USER",
+        id,
+      },
+      []
     );
-  };
+  });
+
+  const onRemove = useCallback((id) => {
+    dispatch({ type: "REMOVE_USER", id });
+  }, []);
+
   const count = useMemo(() => countActiveUsers(users), [users]);
+
   return (
     <>
-      <CreateUser
+      <CreateUser onChange={onChange} onCreate={onCreate} />
+      <UserList
+        users={users}
         username={username}
         email={email}
-        onChange={onChange}
-        onCreate={onCreate}
+        onToggle={onToggle}
+        onRemove={onRemove}
       />
-      <UserList users={users} onRemove={onRemove} onToggle={onToggle} />
       <div>활성 사용자 수: {count}</div>
     </>
   );
