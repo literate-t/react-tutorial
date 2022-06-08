@@ -7,6 +7,7 @@ export const CreateUser = React.memo(() => {
     username: "",
     email: "",
   });
+
   const nextId = useRef(4);
   const { username, email } = form;
   const onCreate = useCallback(() => {
